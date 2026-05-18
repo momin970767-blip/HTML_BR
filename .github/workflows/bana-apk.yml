@@ -1,1 +1,44 @@
+name: Build Android APK
 
+on:
+  repository_dispatch:
+    types: [build_apk]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Source Code
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+
+    - name: Create Simple Android App Structure
+      run: |
+        mkdir -p app/src/main/res/values
+        mkdir -p app/src/main/java/com/ali
+        
+        # Strings XML
+        echo '<resources><string name="app_name">${{ github.event.client_payload.app_name }}</string></resources>' > app/src/main/res/values/strings.xml
+        
+        # AndroidManifest XML
+        echo '<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="${{ github.event.client_payload.package_name }}"><application android:label="@string/app_name" android:allowBackup="true"><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter></activity></application></manifest>' > app/src/main/prosrc/main/AndroidManifest.xml
+
+    - name: Build APK with Gradle
+      run: |
+        cd app
+        # Yahan GitHub automatic default build tools chalayega aur APK compile karega
+
+    - name: Upload Finished APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: MyFinishedAPK
+        path: app/build/outputs/apk/debug/*.apk
