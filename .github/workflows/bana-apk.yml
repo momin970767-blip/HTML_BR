@@ -18,27 +18,39 @@ jobs:
         distribution: 'zulu'
         java-version: '17'
 
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
-
-    - name: Create Simple Android App Structure
+    - name: Create Dummy Android Project Structure
       run: |
+        # Gradle settings file
+        echo "rootProject.name = 'MyAPK'" > settings.gradle
+        
+        # Base build.gradle file
+        echo -e "buildscript {\n    repositories {\n        google()\n        mavenCentral()\n    }\n    dependencies {\n        classpath 'com.android.tools.build:gradle:8.2.0'\n    }\n}" > build.gradle
+        echo -e "allprojects {\n    repositories {\n        google()\n        mavenCentral()\n    }\n}" >> build.gradle
+        
+        # App module directory structure
         mkdir -p app/src/main/res/values
         mkdir -p app/src/main/java/com/ali
         
-        # Strings XML
-        echo '<resources><string name="app_name">${{ github.event.client_payload.app_name }}</string></resources>' > app/src/main/res/values/strings.xml
+        # App module build.gradle
+        echo -e "plugins {\n    id 'com.android.application'\n}\nandroid {\n    namespace '${{ github.event.client_payload.package_name }}'\n    compileSdk 34\n    defaultConfig {\n        applicationId '${{ github.event.client_payload.package_name }}'\n        minSdk 24\n        targetSdk 34\n        versionCode 1\n        versionName '1.0'\n    }\n}" > app/build.gradle
+        
+        # Strings XML for App Name
+        echo '<resources><string name="app_name">'"${{ github.event.client_payload.app_name }}"'</string></resources>' > app/src/main/res/values/strings.xml
         
         # AndroidManifest XML
-        echo '<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="${{ github.event.client_payload.package_name }}"><application android:label="@string/app_name" android:allowBackup="true"><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter></activity></application></manifest>' > app/src/main/prosrc/main/AndroidManifest.xml
+        echo '<manifest xmlns:android="http://schemas.android.com/apk/res/android"><application android:label="@string/app_name" android:allowBackup="true"><activity android:name="com.ali.MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter></activity></application></manifest>' > app/src/main/AndroidManifest.xml
+        
+        # Main Activity Java File
+        echo -e "package com.ali;\nimport android.os.Bundle;\nimport android.app.Activity;\npublic class MainActivity extends Activity {\n    @Override\n    protected void onCreate(Bundle savedInstanceState) {\n        super.onCreate(savedInstanceState);\n    }\n}" > app/src/main/java/com/ali/MainActivity.java
 
-    - name: Build APK with Gradle
-      run: |
-        cd app
-        # Yahan GitHub automatic default build tools chalayega aur APK compile karega
+    - name: Setup Gradle wrapper
+      run: npm install -g gradle && gradle wrapper --gradle-version 8.5
+
+    - name: Compile and Build APK
+      run: ./gradlew assembleDebug
 
     - name: Upload Finished APK
       uses: actions/upload-artifact@v4
       with:
-        name: MyFinishedAPK
+        name: FinishedAPK
         path: app/build/outputs/apk/debug/*.apk
